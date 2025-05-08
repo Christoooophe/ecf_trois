@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis-container
+    ports:
+      - "6380:6379"
+    networks:
+      - mynetwork
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: authentication_db
+      MYSQL_USER: user1
+      MYSQL_PASSWORD: password1
+    ports:
+      - "3308:3306" 
+    networks:
+      - mynetwork
+    volumes:
+      - ./init-sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uuser1", "-ppassword1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  payment-service:
+    build:
+      context: ./server/payment-service
+    container_name: payment-service
+    ports:
+      - "8083:8083"
+    networks:
+      - mynetwork
+
+  authentication-service:
+    build:
+      context: ./server/authentication-service
+    container_name: authentication-service
+    environment: 
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-container:3306/authentication_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=user1
+      - SPRING_DATASOURCE_PASSWORD=password1
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  common-data-service:
+    build:
+      context: ./server/common-data-service
+    container_name: common-data-service
+    environment: 
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-container:3306/common_data_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=user1
+      - SPRING_DATASOURCE_PASSWORD=password1
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
