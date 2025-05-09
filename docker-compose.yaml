@@ -5,7 +5,7 @@ services:
     image: redis:latest
     container_name: redis-container
     ports:
-      - "6380:6379"
+      - "6380:${REDIS_PORT}"
     networks:
       - mynetwork
 
@@ -14,12 +14,11 @@ services:
     restart: always
     container_name: mysql-container
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: authentication_db
-      MYSQL_USER: user1
-      MYSQL_PASSWORD: password1
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3308:3306" 
+      - "3308:${DB_PORT}" 
     networks:
       - mynetwork
     volumes:
@@ -35,8 +34,10 @@ services:
     build:
       context: ./server/payment-service
     container_name: payment-service
+    environment:
+      - STRIPE_KEY=${STRIPE_KEY}
     ports:
-      - "8083:8083"
+      - "8083:${PAYMENT_SERVICE_PORT}"
     networks:
       - mynetwork
 
@@ -44,12 +45,13 @@ services:
     build:
       context: ./server/authentication-service
     container_name: authentication-service
-    environment: 
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-container:3306/authentication_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
-      - SPRING_DATASOURCE_USERNAME=user1
-      - SPRING_DATASOURCE_PASSWORD=password1
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_AUTH_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
     ports:
-      - "8081:8081"
+      - "8081:${AUTH_SERVICE_PORT}"
     depends_on:
       mysql:
         condition: service_healthy
@@ -61,14 +63,16 @@ services:
       context: ./server/common-data-service
     container_name: common-data-service
     environment: 
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-container:3306/common_data_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
-      - SPRING_DATASOURCE_USERNAME=user1
-      - SPRING_DATASOURCE_PASSWORD=password1
+      - SPRING_DATASOURCE_URL=${COMMON_SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${COMMON_SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${COMMON_SPRING_DATASOURCE_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=${COMMON_SPRING_PROFILES_ACTIVE}
+      - SPRING_CACHE_REDIS_TIME_TO_LIVE=${COMMON_SPRING_CACHE_REDIS_TTL}
     depends_on:
       mysql:
         condition: service_healthy
     ports:
-      - "8082:8082"
+      - "8082:${COMMON_SERVICE_DATA_PORT}"
     networks:
       - mynetwork
   
@@ -77,11 +81,12 @@ services:
       context: ./server/search-service
     container_name: search-service
     ports:
-      - '3002:3002'
+      - '3002:${SUGGESTION_SERVICE_PORT}'
     volumes:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - API_URL=http://common-data-service:8082/search-suggestion-list 
     networks:
       - mynetwork
   
@@ -95,7 +100,7 @@ services:
         REACT_APP_SEARCH_SUGGESTION_SERVICE_URL: http://localhost:3002
     container_name: front
     ports:
-      - "3000:3000"
+      - "3000:${REACT_APP_PORT}"
     depends_on:
       - authentication-service
       - common-data-service
@@ -103,8 +108,6 @@ services:
       - search-service
     networks:
       - mynetwork
-
-    
 
 networks:
   mynetwork:

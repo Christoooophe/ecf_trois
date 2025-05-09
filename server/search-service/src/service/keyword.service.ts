@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as path from 'node:path';
-import * as fs from 'fs/promises';
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 export interface KeywordEntry {
   keyword: string;
@@ -8,29 +8,32 @@ export interface KeywordEntry {
 }
 
 @Injectable()
-export class KeywordService implements OnModuleInit {
-  private readonly filePath = path.join(__dirname, '..', '..', 'keywords.json');
-  private keywordsData: KeywordEntry[] = [];
+export class KeywordService {
+  private readonly apiUrl = process.env.API_URL || 'http://common-data-service:8082/search-suggestion-list';
 
-  async onModuleInit() {
-    await this.loadKeywordsFromFile();
-  }
+  constructor(private readonly http: HttpService) {}
 
-  async loadKeywordsFromFile() {
+  private async fetchKeywordsFromApi(): Promise<KeywordEntry[]> {
     try {
-      const file = await fs.readFile(this.filePath, 'utf-8');
-      const { data }: { data: KeywordEntry[] } = JSON.parse(file);
-      this.keywordsData = data;
-      console.log(`Mots-clés chargés depuis ${this.filePath}`);
+      const response = await firstValueFrom(this.http.get(this.apiUrl));
+      const productKeywords: string[] = response.data.productKeywords ?? [];
+
+      return productKeywords.map(keyword => ({
+        keyword,
+        link: `category=${keyword.split(' ')[0].toLowerCase()}`,
+      }));
     } catch (error) {
-      console.error(`Erreur lors de la lecture du fichier ${this.filePath}:`, error);
-      this.keywordsData = [];
+      console.error(`Erreur lors de la récupération des mots-clés depuis l'API:`, error);
+      throw new Error('Erreur de récupération des mots-clés');
     }
   }
 
   async searchKeywords(query: string): Promise<KeywordEntry[]> {
     const lowerQuery = query.toLowerCase();
-    return this.keywordsData
+
+    const keywords = await this.fetchKeywordsFromApi();
+
+    return keywords
       .filter(entry => entry.keyword.toLowerCase().startsWith(lowerQuery))
       .slice(0, 10);
   }
