@@ -21,12 +21,12 @@ public class DevRedisConfig {
 
     @Bean
     JedisConnectionFactory jedisConnectionFactory() {
-        System.out.println("Loading Dev profile redis config....");
-        RedisStandaloneConfiguration redisStandaloneConfiguration =
-                new RedisStandaloneConfiguration("redis-container", 6379);
+        String host = environment.getProperty("REDIS_HOST", "localhost");
+        int port = Integer.parseInt(Objects.requireNonNull(environment.getProperty("REDIS_PORT", "6379")));
 
-        redisStandaloneConfiguration.setPassword(RedisPassword.of(""));
-        return new JedisConnectionFactory(redisStandaloneConfiguration);
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);
+
+        return new JedisConnectionFactory(config);
     }
 
     @Bean

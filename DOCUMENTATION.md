@@ -25,7 +25,7 @@ L'application utilise les ports suivants en local (en dehors des conteneurs):
 - Payment-service: 8083
 - Suggestion-service: 3002
 
-Vous devez vous assurer que ces ports ne sont pas déjà utilisés. Sinon, vous pouvez les changer directement dans le fichier .env
+Vous devez vous assurer que ces ports ne sont pas déjà utilisés. Sinon, vous pouvez les changer directement dans le fichier docker compose
 
 Pour démarrer l'entierté de l'application, comprenant le front et les micro services, vous devez, à la racine du projet, entrer la commande (après avoir démarré docker desktop) :
 
