@@ -1,0 +1,26 @@
+FROM node:16-alpine AS builder
+
+WORKDIR /app
+
+ARG REACT_APP_AUTHENTICATION_SERVICE_URL
+ARG REACT_APP_PAYMENT_SERVICE_URL
+ARG REACT_APP_COMMON_DATA_SERVICE_URL
+ARG REACT_APP_SEARCH_SUGGESTION_SERVICE_URL
+
+COPY package.json yarn.lock* ./
+
+RUN yarn install
+
+COPY . .
+
+RUN yarn build
+
+FROM node:16-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app .
+
+EXPOSE 3000
+
+CMD ["yarn", "start"]

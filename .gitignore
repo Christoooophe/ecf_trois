@@ -30,5 +30,3 @@ server/common-data-service/src/main/resources/static/images/
 server/authentication-service/.idea/
 server/common-data-service/.idea/
 server/seller-account-service/.idea/
-
-server/search-service

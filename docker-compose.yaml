@@ -71,6 +71,40 @@ services:
       - "8082:8082"
     networks:
       - mynetwork
+  
+  search-service:
+    build: 
+      context: ./server/search-service
+    container_name: search-service
+    ports:
+      - '3002:3002'
+    volumes:
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    networks:
+      - mynetwork
+  
+  front:
+    build:
+      context: ./client
+      args:
+        REACT_APP_AUTHENTICATION_SERVICE_URL: http://localhost:8081
+        REACT_APP_COMMON_DATA_SERVICE_URL: http://localhost:8082
+        REACT_APP_PAYMENT_SERVICE_URL: http://localhost:8083
+        REACT_APP_SEARCH_SUGGESTION_SERVICE_URL: http://localhost:3002
+    container_name: front
+    ports:
+      - "3000:3000"
+    depends_on:
+      - authentication-service
+      - common-data-service
+      - payment-service
+      - search-service
+    networks:
+      - mynetwork
+
+    
 
 networks:
   mynetwork:
